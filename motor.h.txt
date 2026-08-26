@@ -1,0 +1,18 @@
+#ifndef __MOTOR_H
+#define __MOTOR_H
+#include "sys.h"
+
+//µç»ú·½Ïò¿ØÖÆÒý½Å(Î»´ø²Ù×÷)
+#define AIN  PBout(14)    //×óµç»ú·½Ïò¿ØÖÆÒý½Å
+#define BIN  PBout(13)    //ÓÒµç»ú·½Ïò¿ØÖÆÒý½Å
+
+//µç»úPWMÊä³ö(TIM4_CH1->PB6, TIM4_CH2->PB7)
+#define PWMA TIM4->CCR1   //×óµç»úPWM
+#define PWMB TIM4->CCR2   //ÓÒµç»úPWM
+
+void Motor_Init(void);             //µç»ú·½ÏòÒý½Å³õÊ¼»¯
+void PWM_Init(u16 arr,u16 psc);    //¶¨Ê±Æ÷PWM³õÊ¼»¯
+void Set_Pwm(int moto1,int moto2); //ÉèÖÃ×óÓÒÂÖPWM
+u32 myabs(long int a);             //¾ø¶ÔÖµº¯Êý
+
+#endif
