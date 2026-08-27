@@ -1,0 +1,18 @@
+# ===== Keil 编译产物(可重新生成, 不上传) =====
+OBJ/
+Listings/
+*.uvguix*
+*.uvoptx.bak
+build.log
+build*.log
+
+# ===== 敏感文件: 含虚拟机密码, 严禁上传! =====
+ssh_askpass.cmd
+known_hosts
+known_hosts.old
+
+# ===== 压缩包/临时文件 =====
+*.zip
+*.rar
+Thumbs.db
+.DS_Store
