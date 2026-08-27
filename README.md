@@ -8,7 +8,8 @@
 driveless/
 ├── STM32/                          # STM32F103C8T6 侧 (Keil MDK5 工程)
 │   ├── 3_PWM驱动电机/              # 任务21: STM32 TIMER PWM 驱动电机
-│   └── 4_编码器测速/               # 任务22: STM32 TIMER 编码器测速
+│   ├── 4_编码器测速/               # 任务22: STM32 TIMER 编码器测速
+│   └── 5_PID速度闭环/              # 任务23: STM32 PID 电机速度闭环控制
 ├── Hi3861/                         # Hi3861 (OpenHarmony) 侧
 │   └── 任务7_GPIO驱动舵机/         # 任务7: OpenHarmony GPIO 驱动舵机(互斥锁多任务)
 ├── 26-8-25.md                      # 工作日志 2026-08-25
@@ -55,6 +56,16 @@ driveless/
 - **实测参数（需按实车修正）**：`ENCODER_PULSES_PER_REV = 360*4`、`WHEEL_CIRCUMFERENCE = 0.204m`（默认直径 65mm）
 - 文件：`QST_HARDWARE/encoder/encoder.c|h`、`USER/main.c`
 
+### 任务23：STM32 PID 电机速度闭环控制（`STM32/5_PID速度闭环/`）
+
+增量式 PI 速度闭环：编码器测速（任务22）作反馈，PWM 驱动（任务21）作输出，实现电机按目标转速稳定运行。
+
+- 控制周期 100ms：`读编码器 → 算目标脉冲数 → PI计算 → Set_Pwm 输出`
+- 增量式 PI：`Pwm += Kp·[e(k)-e(k-1)] + Ki·e(k)`，Kp=7.0、Ki=0.010，输出限幅 ±7199
+- 目标换算：`Rs_To_CR(r) = r × (700×4) / (1000/100)`（**700 线/转为默认值，需按实车修正**）
+- 学生任务：调整 `System_Control()` 中 `TageA/TageB` 目标值观察小车速度变化
+- 文件：`QST_HARDWARE/SYSTEM_CONTROL/control_system.c|h` + 复用 `motor`、`encoder`
+
 ### 任务7：OpenHarmony GPIO 驱动舵机（`Hi3861/任务7_GPIO驱动舵机/`）
 
 OpenHarmony(Hi3861) 下用 GPIO 产生 PWM 驱动 SG90 舵机，并通过互斥锁实现同优先级三任务联动。
@@ -68,7 +79,7 @@ OpenHarmony(Hi3861) 下用 GPIO 产生 PWM 驱动 SG90 舵机，并通过互斥�
 ## 烧录方法
 
 ### STM32 侧（Keil + ST-Link）
-1. Keil 打开 `STM32/3_PWM驱动电机/USER/PWM_Motor.uvprojx` 或 `STM32/4_编码器测速/USER/Encoder_Speed.uvprojx`，F7 编译（工程已内置 ST-Link 配置）
+1. Keil 打开 `STM32/3_PWM驱动电机/USER/PWM_Motor.uvprojx`、`STM32/4_编码器测速/USER/Encoder_Speed.uvprojx` 或 `STM32/5_PID速度闭环/USER/PID_Speed.uvprojx`，F7 编译（工程已内置 ST-Link 配置）
 2. ST-Link 连接，点击 Download
 3. 串口开关拨到 **STM32 端**，串口助手 115200 观察输出
 
