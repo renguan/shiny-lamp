@@ -6,11 +6,13 @@
 
 ```
 driveless/
-├── 3_PWM驱动电机/          # 任务21: STM32 TIMER PWM 驱动电机
-├── 4_编码器测速/           # 任务22: STM32 TIMER 编码器测速
-├── 任务7_GPIO驱动舵机/     # 任务7: OpenHarmony GPIO 驱动舵机(互斥锁多任务)
-├── 26-8-25.md              # 工作日志 2026-08-25
-├── 26-8-26.md              # 工作日志 2026-08-26
+├── STM32/                          # STM32F103C8T6 侧 (Keil MDK5 工程)
+│   ├── 3_PWM驱动电机/              # 任务21: STM32 TIMER PWM 驱动电机
+│   └── 4_编码器测速/               # 任务22: STM32 TIMER 编码器测速
+├── Hi3861/                         # Hi3861 (OpenHarmony) 侧
+│   └── 任务7_GPIO驱动舵机/         # 任务7: OpenHarmony GPIO 驱动舵机(互斥锁多任务)
+├── 26-8-25.md                      # 工作日志 2026-08-25
+├── 26-8-26.md                      # 工作日志 2026-08-26
 ├── .gitignore
 └── README.md
 ```
@@ -28,7 +30,7 @@ driveless/
 
 ## 任务说明
 
-### 任务21：STM32 TIMER PWM 驱动电机
+### 任务21：STM32 TIMER PWM 驱动电机（`STM32/3_PWM驱动电机/`）
 
 用 TIM4 产生 1000Hz PWM 驱动左右电机，实现前进。
 
@@ -42,7 +44,7 @@ driveless/
 - 参数：ARR=7199，PSC=9 → 1000Hz；`Set_Pwm(2500,2500)` 前进
 - 文件：`QST_HARDWARE/motor/motor.c|h`、`USER/main.c`
 
-### 任务22：STM32 TIMER 编码器测速
+### 任务22：STM32 TIMER 编码器测速（`STM32/4_编码器测速/`）
 
 编码器接口模式测速，并把脉冲数换算成小车速度(m/s)打印。
 
@@ -53,11 +55,11 @@ driveless/
 - **实测参数（需按实车修正）**：`ENCODER_PULSES_PER_REV = 360*4`、`WHEEL_CIRCUMFERENCE = 0.204m`（默认直径 65mm）
 - 文件：`QST_HARDWARE/encoder/encoder.c|h`、`USER/main.c`
 
-### 任务7：OpenHarmony GPIO 驱动舵机
+### 任务7：OpenHarmony GPIO 驱动舵机（`Hi3861/任务7_GPIO驱动舵机/`）
 
 OpenHarmony(Hi3861) 下用 GPIO 产生 PWM 驱动 SG90 舵机，并通过互斥锁实现同优先级三任务联动。
 
-- 工程：`applications/sample/wifi-iot/app/3.0_SG90_Mutex/`（构建：`python build.py wifiiot`）
+- 工程：`3.0_SG90_Mutex/`（放入 OpenHarmony 源码 `applications/sample/wifi-iot/app/` 后执行 `python build.py wifiiot`）
 - 任务1：优先运行，串口输出 1 次，舵机左转 45°
 - 任务3：任务1 运行 3 秒后，串口输出 2 次，舵机右转 45°
 - 任务2：任务3 之后立即运行，串口输出 3 次，舵机居中
@@ -66,7 +68,7 @@ OpenHarmony(Hi3861) 下用 GPIO 产生 PWM 驱动 SG90 舵机，并通过互斥�
 ## 烧录方法
 
 ### STM32 侧（Keil + ST-Link）
-1. Keil 打开 `USER/*.uvprojx`，F7 编译（工程已内置 ST-Link 配置）
+1. Keil 打开 `STM32/3_PWM驱动电机/USER/PWM_Motor.uvprojx` 或 `STM32/4_编码器测速/USER/Encoder_Speed.uvprojx`，F7 编译（工程已内置 ST-Link 配置）
 2. ST-Link 连接，点击 Download
 3. 串口开关拨到 **STM32 端**，串口助手 115200 观察输出
 
@@ -81,9 +83,3 @@ OpenHarmony(Hi3861) 下用 GPIO 产生 PWM 驱动 SG90 舵机，并通过互斥�
 - PWM 设置值不能超过重装载值 7199
 - 编码器测速参数（每圈脉冲数、车轮周长）需实测后修正
 - 工作日志按日期命名（`26-8-XX.md`）
-
----
-
-## 原始仓库说明 (shiny-lamp)
-
-主要对 *colorful_led* 和 *main.c* 进行了更改，其中 *stm32.txt* 为主要改动。
