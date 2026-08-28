@@ -81,11 +81,11 @@ void System_Control(void)
     int TageA = 0;   //左轮目标脉冲数
     int TageB = 0;   //右轮目标脉冲数
 
-    L_coder = Read_Encoder(2);   //读取左轮100ms内脉冲数
-    R_coder = Read_Encoder(3);   //读取右轮100ms内脉冲数
+    L_coder = -Read_Encoder(2);  //读取左轮100ms内脉冲数(取负: 前进为正)
+    R_coder = -Read_Encoder(3);  //读取右轮100ms内脉冲数(取负: 前进为正)
 
-    TageA = Rs_To_CR(1.0);       //左轮目标: 1转/s
-    TageB = Rs_To_CR(-1.0);      //右轮目标: -1转/s (左右编码器/电机安装方向相反)
+    TageA = Rs_To_CR(1.0);       //左轮目标: 1转/s 前进
+    TageB = Rs_To_CR(1.0);       //右轮目标: 1转/s 前进 (与左轮同方向)
 
     Motor_A = Incremental_PI_A(L_coder, TageA);   //左轮速度闭环 -> PWM
     Motor_B = Incremental_PI_B(R_coder, TageB);   //右轮速度闭环 -> PWM

@@ -22,7 +22,7 @@
   </DaveTm>
 
   <Target>
-    <TargetName>PID_Speed</TargetName>
+    <TargetName>Distance_Control</TargetName>
     <ToolsetNumber>0x4</ToolsetNumber>
     <ToolsetName>ARM-ADS</ToolsetName>
     <TargetOption>
