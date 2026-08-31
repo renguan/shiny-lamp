@@ -12,10 +12,13 @@ driveless/
 │   ├── 5_PID速度闭环/              # 任务23: STM32 PID 电机速度闭环控制
 │   └── 6_距离控制/                 # 任务24: STM32 距离控制(1米往返)
 ├── Hi3861/                         # Hi3861 (OpenHarmony) 侧
-│   └── 任务7_GPIO驱动舵机/         # 任务7: OpenHarmony GPIO 驱动舵机(互斥锁多任务)
+│   ├── 任务7_GPIO驱动舵机/         # 任务7: OpenHarmony GPIO 驱动舵机(互斥锁多任务)
+│   ├── 6.0_Sum_Experiment_First/   # 任务10: 第一阶段综合实验(舵机测距+红外寻线+蓝牙+消息队列)
+│   └── 7.0_I2c_Ssd1306_OLED/       # 任务11: I2C驱动SSD1306 OLED显示(含中文"鸿蒙先锋号")
 ├── 26-8-25.md                      # 工作日志 2026-08-25
 ├── 26-8-26.md                      # 工作日志 2026-08-26
 ├── 26-8-27.md                      # 工作日志 2026-08-27
+├── 26-8-31.md                      # 工作日志 2026-08-31
 ├── .gitignore
 └── README.md
 ```
@@ -76,6 +79,25 @@ driveless/
 - 速度参数：`FORWARD_RPS = 1.5`、`BACKWARD_RPS = -1.7`（后退补偿，按实车微调）
 - 已修复 4 个 bug：Set_Pwm 引脚配对交叉；SysTick 中 millis 被清零致状态机计时失效；编码器取负致距离累计不到目标；后退偏慢（清零 PI 累加器立即反转）
 - 文件：`QST_HARDWARE/SYSTEM_CONTROL/control_system.c|h` + 复用 `motor`、`encoder`
+
+### 任务10：第一阶段综合实验（`Hi3861/6.0_Sum_Experiment_First/`）
+
+综合舵机、超声波、红外对管、蓝牙、UART、消息队列、多任务知识点，实现多级联动。
+
+- **Task1 舵机左右旋转测距**：SG90（GPIO2，20ms 周期 PWM）左/中/右转动 + HC-SR04 超声波（TRIG=GPIO7、ECHO=GPIO8）测距，结果入消息队列
+- **Task2 前15秒红外寻线，15秒后蓝牙通信**：红外对管（GPIO13 左/GPIO14 右）寻线逻辑，通过 UART2（GPIO11/12）协议帧（0xFC+方向+速度+0xFD）指挥 STM32 驱动电机；15 秒后切换为读取 UART1（GPIO0/1，蓝牙模块）数据
+- **Task3 消息队列打印**：`osMessageQueueGet` 阻塞接收，按类型打印测距/蓝牙/寻线信息
+- **任务1/2 交替运行**：同优先级（osPriorityNormal）时间片轮转
+- 文件：`Sum_Experiment_First.c`、`BUILD.gn`（需 `CONFIG_I2C_SUPPORT=y`，见下）
+
+### 任务11：OLED 显示字符串（含中文）（`Hi3861/7.0_I2c_Ssd1306_OLED/`）
+
+I2C 驱动 SSD1306 OLED 显示字符串，并在示范代码基础上实现中文"鸿蒙先锋号"显示。
+
+- **坑**：SDK `build/config/usr_config.mk` 中 `CONFIG_I2C_SUPPORT` 默认未使能，导致链接报 `undefined reference to hi_i2c_*`；改为 `CONFIG_I2C_SUPPORT=y` 后 `libi2c.a` 正常生成
+- **中文支持**：fonts.h 新增 `F16x16` 16x16 中文字库（"鸿蒙先锋号"5 字取模）；新增 `SSD1306_ShowCN(x, y, ch[])` 按 UTF-8 匹配显示
+- Task1 显示"鸿蒙先锋号"（居中）+ 每秒刷新的实时时钟
+- 文件：`I2c_Ssd1306.c`、`include/`、`src/`
 
 ### 任务7：OpenHarmony GPIO 驱动舵机（`Hi3861/任务7_GPIO驱动舵机/`）
 
