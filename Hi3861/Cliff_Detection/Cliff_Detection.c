@@ -26,12 +26,14 @@
 #define PIN_TRACE_R      WIFI_IOT_IO_NAME_GPIO_14   /* 红外对管 右 */
 #define UART_STM32       WIFI_IOT_UART_IDX_2        /* 与STM32通信 */
 
-/* 运动参数(ms), 按实车微调 */
-#define SPEED_FWD        50                        /* 前进速度(0-150): 过快惯性大刹不住 */
-#define SPEED_BACK       30                        /* 后退速度(慢速小幅后退) */
-#define SPEED_TURN       110                       /* 转向速度 */
-#define BACK_MS          2500                      /* 后退时长: 确保完全脱离边缘 */
-#define TURN_MS          1500                      /* 转向时长 */
+/* 运动参数, 按实车微调 */
+#define SPEED_FWD        45                        /* 前进速度(0-150): 适中, 惯性可控 */
+#define SPEED_BRAKE      100                       /* 反转制动力: 大力矩瞬间刹住惯性 */
+#define BRAKE_MS         300                       /* 强力制动时长 */
+#define SPEED_BACK       40                        /* 制动后慢速后退速度 */
+#define BACK_MS          3000                      /* 慢速后退时长: 保证整车脱离边缘再转向 */
+#define SPEED_TURN       100                       /* 转向速度 */
+#define TURN_MS          1800                      /* 转向时长 */
 #define REST_MS          300                       /* 转向后停顿 */
 
 /* ============ UART2 电机协议(0xFC帧头+方向+速度+0xFD帧尾) ============ */
@@ -53,7 +55,8 @@ static void stm32motor_control(int motorA, int motorB)
     UartWrite(UART_STM32, uart_sendbuf, 6);
 }
 static void car_forward(void)  { stm32motor_control(SPEED_FWD, SPEED_FWD); }
-static void car_backward(void) { stm32motor_control(-SPEED_BACK, -SPEED_BACK); }
+static void car_brake(void)    { stm32motor_control(-SPEED_BRAKE, -SPEED_BRAKE); }  /* 强力反转制动 */
+static void car_backward(void) { stm32motor_control(-SPEED_BACK, -SPEED_BACK); }    /* 慢速后退 */
 static void car_left(void)     { stm32motor_control(-SPEED_TURN, SPEED_TURN); }
 static void car_right(void)    { stm32motor_control(SPEED_TURN, -SPEED_TURN); }
 static void car_stop(void)     { stm32motor_control(0, 0); }
@@ -82,9 +85,18 @@ static void *CliffTask(void *arg)
             usleep(10000);   /* 10ms 轮询一次, 尽快检测到边缘 */
         }
 
-        /* 到达边缘: 不停顿, 立即反转制动+后退(利用电机反转刹住惯性, 防止冲出) */
+        /* 到达边缘: 立即强力反转制动(连发3次确保STM32执行), 刹住惯性 */
+        car_brake();
+        usleep(5000);
+        car_brake();
+        usleep(5000);
+        car_brake();
+        printf("[Cliff] 边缘! 强力制动\r\n");
+        usleep(BRAKE_MS * 1000);
+
+        /* 慢速后退, 保证整车完全脱离边缘再转向 */
         car_backward();
-        printf("[Cliff] 检测到边缘! 反转制动后退\r\n");
+        printf("[Cliff] 慢速后退脱离...\r\n");
         usleep(BACK_MS * 1000);
         car_stop();
 
