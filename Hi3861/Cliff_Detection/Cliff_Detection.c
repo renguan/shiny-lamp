@@ -27,8 +27,8 @@
 #define UART_STM32       WIFI_IOT_UART_IDX_2        /* 与STM32通信 */
 
 /* 运动参数(ms), 按实车微调 */
-#define SPEED_FWD        80                        /* 前进速度(0-150): 过快惯性大刹不住 */
-#define SPEED_BACK       120                       /* 后退速度(略大, 反转制动+快速脱离) */
+#define SPEED_FWD        50                        /* 前进速度(0-150): 过快惯性大刹不住 */
+#define SPEED_BACK       30                        /* 后退速度(慢速小幅后退) */
 #define SPEED_TURN       110                       /* 转向速度 */
 #define BACK_MS          2500                      /* 后退时长: 确保完全脱离边缘 */
 #define TURN_MS          1500                      /* 转向时长 */
