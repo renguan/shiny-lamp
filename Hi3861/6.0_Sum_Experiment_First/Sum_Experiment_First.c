@@ -53,9 +53,10 @@ static void sg90_set_angle(unsigned int duty)
     GpioSetOutputVal(PIN_SG90, WIFI_IOT_GPIO_VALUE0);
     hi_udelay(20000 - duty);
 }
-static void sg90_left(void)   { for (int i = 0; i < 10; i++) sg90_set_angle(2200); }
-static void sg90_middle(void) { for (int i = 0; i < 10; i++) sg90_set_angle(1650); }
-static void sg90_right(void)  { for (int i = 0; i < 10; i++) sg90_set_angle(1100); }
+/* 每个角度发50次脉冲(1秒), 让舵机有足够时间转到位 */
+static void sg90_left(void)   { for (int i = 0; i < 50; i++) sg90_set_angle(2200); }
+static void sg90_middle(void) { for (int i = 0; i < 50; i++) sg90_set_angle(1650); }
+static void sg90_right(void)  { for (int i = 0; i < 50; i++) sg90_set_angle(1100); }
 
 /* ================= 超声波测距(返回cm) ================= */
 static float hcsr04_get_distance(void)
@@ -135,18 +136,21 @@ static void *Task1(void *arg)
     MsgInfo msg;
     while (1) {
         sg90_left();
+        usleep(500000);                 /* 等舵机转到位再测距 */
         dist = hcsr04_get_distance();
         printf("[Task1] 舵机左: %d cm\r\n", (int)dist);
         msg.type = 1; msg.dist = dist;
         osMessageQueuePut(g_msgq, &msg, 0, 0);
 
         sg90_middle();
+        usleep(500000);
         dist = hcsr04_get_distance();
         printf("[Task1] 舵机中: %d cm\r\n", (int)dist);
         msg.type = 1; msg.dist = dist;
         osMessageQueuePut(g_msgq, &msg, 0, 0);
 
         sg90_right();
+        usleep(500000);
         dist = hcsr04_get_distance();
         printf("[Task1] 舵机右: %d cm\r\n", (int)dist);
         msg.type = 1; msg.dist = dist;
