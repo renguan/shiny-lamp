@@ -27,9 +27,12 @@
 #define UART_STM32       WIFI_IOT_UART_IDX_2        /* 与STM32通信 */
 
 /* 运动参数(ms), 按实车微调 */
-#define BACK_MS          2000                       /* 后退时长 */
-#define TURN_MS          1500                       /* 转向时长 */
-#define REST_MS          300                        /* 转向后停顿 */
+#define SPEED_FWD        80                        /* 前进速度(0-150): 过快惯性大刹不住 */
+#define SPEED_BACK       120                       /* 后退速度(略大, 反转制动+快速脱离) */
+#define SPEED_TURN       110                       /* 转向速度 */
+#define BACK_MS          2500                      /* 后退时长: 确保完全脱离边缘 */
+#define TURN_MS          1500                      /* 转向时长 */
+#define REST_MS          300                       /* 转向后停顿 */
 
 /* ============ UART2 电机协议(0xFC帧头+方向+速度+0xFD帧尾) ============ */
 static uint8_t uart_sendbuf[6];
@@ -49,10 +52,10 @@ static void stm32motor_control(int motorA, int motorB)
     uart_sendbuf[5] = 0xFD;
     UartWrite(UART_STM32, uart_sendbuf, 6);
 }
-static void car_forward(void)  { stm32motor_control(150, 150); }
-static void car_backward(void) { stm32motor_control(-150, -150); }
-static void car_left(void)     { stm32motor_control(-100, 150); }
-static void car_right(void)    { stm32motor_control(150, -100); }
+static void car_forward(void)  { stm32motor_control(SPEED_FWD, SPEED_FWD); }
+static void car_backward(void) { stm32motor_control(-SPEED_BACK, -SPEED_BACK); }
+static void car_left(void)     { stm32motor_control(-SPEED_TURN, SPEED_TURN); }
+static void car_right(void)    { stm32motor_control(SPEED_TURN, -SPEED_TURN); }
 static void car_stop(void)     { stm32motor_control(0, 0); }
 
 /* ============ 悬崖检测: 任一红外对管无反射(悬空)即为边缘 ============ */
@@ -76,17 +79,12 @@ static void *CliffTask(void *arg)
 
         /* 持续前进直到检测到边缘 */
         while (!at_cliff()) {
-            usleep(30000);   /* 30ms 轮询一次 */
+            usleep(10000);   /* 10ms 轮询一次, 尽快检测到边缘 */
         }
 
-        /* 到达边缘: 停止 */
-        car_stop();
-        printf("[Cliff] 检测到边缘! 停止\r\n");
-        usleep(200000);
-
-        /* 后退一小段距离避开悬崖 */
+        /* 到达边缘: 不停顿, 立即反转制动+后退(利用电机反转刹住惯性, 防止冲出) */
         car_backward();
-        printf("[Cliff] 后退避让...\r\n");
+        printf("[Cliff] 检测到边缘! 反转制动后退\r\n");
         usleep(BACK_MS * 1000);
         car_stop();
 
