@@ -31,7 +31,8 @@
 #define SPEED_BRAKE      100                       /* 反转制动力: 大力矩瞬间刹住惯性 */
 #define BRAKE_MS         300                       /* 强力制动时长 */
 #define SPEED_BACK       75                        /* 制动后慢速后退速度 */
-#define BACK_MS          1000                      /* 慢速后退时长(原3000, 退太远改短) */
+#define EXTRA_SAFE_MS    500                       /* 回到安全区后补保险后退时长 */
+#define BACK_TIMEOUT_MS  6000                      /* 后退最大时长(兜底, 防空转无限后退) */
 #define SPEED_TURN       100                       /* 转向速度 */
 #define TURN_MS          1800                      /* 转向时长 */
 #define REST_MS          300                       /* 转向后停顿 */
@@ -109,10 +110,31 @@ static void *CliffTask(void *arg)
         printf("[Cliff] 边缘! 强力制动\r\n");
         usleep(BRAKE_MS * 1000);
 
-        /* 慢速后退, 保证整车完全脱离边缘再转向 */
+        /* 判定式后退: 实时检测对管, 只有车头回到台面(安全区)才停, 否则继续后退 */
+        printf("[Cliff] 后退中(等待回到安全区)...\r\n");
         car_backward();
-        printf("[Cliff] 慢速后退脱离...\r\n");
-        usleep(BACK_MS * 1000);
+        {
+            int safe_cnt = 0;                  /* 安全确认计数 */
+            unsigned int back_cnt = 0;         /* 后退耗时计数(ms) */
+            while (1) {
+                if (!at_cliff()) {             /* 对管已回到台面 */
+                    if (++safe_cnt >= 10) break;   /* 连续10次(100ms)确认回到安全区 */
+                } else {
+                    safe_cnt = 0;              /* 仍在边缘, 继续后退 */
+                }
+                back_cnt += 10;
+                if (back_cnt >= BACK_TIMEOUT_MS) {   /* 兜底: 超时仍没退回去(轮子空转等) */
+                    printf("[Cliff] 后退超时, 停止等待\r\n");
+                    break;
+                }
+                usleep(10000);
+            }
+            if (safe_cnt >= 10) {
+                /* 已确认回到安全区: 补一小段保险后退, 确保整车完全脱离边缘再转向 */
+                printf("[Cliff] 已回安全区, 补保险后退\r\n");
+                usleep(EXTRA_SAFE_MS * 1000);
+            }
+        }
         car_stop();
 
         /* 转向换个方向 */
