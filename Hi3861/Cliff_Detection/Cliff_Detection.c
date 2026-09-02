@@ -74,15 +74,30 @@ static int at_cliff(void)
 static void *CliffTask(void *arg)
 {
     (void)arg;
-    int turn_dir = 0;   /* 交替左/右转 */
+    int turn_dir = 0;          /* 交替左/右转 */
+    int cliff_cnt = 0;         /* 边缘确认计数(消抖) */
+    uint32_t diag_cnt = 0;     /* 诊断打印计数 */
+    WifiIotGpioValue l, r;
 
     while (1) {
         car_forward();
         printf("[Cliff] 前进...\r\n");
 
-        /* 持续前进直到检测到边缘 */
-        while (!at_cliff()) {
-            usleep(10000);   /* 10ms 轮询一次, 尽快检测到边缘 */
+        /* 持续前进直到确认检测到边缘(连续3次, 消抖防误判) */
+        cliff_cnt = 0;
+        while (1) {
+            if (at_cliff()) {
+                if (++cliff_cnt >= 3) break;   /* 连续3次(约30ms)确认边缘 */
+            } else {
+                cliff_cnt = 0;
+            }
+            /* 诊断: 每200ms打印一次对管原始电平, 用于核对台面/悬空逻辑 */
+            if (++diag_cnt % 20 == 0) {
+                GpioGetInputVal(PIN_TRACE_L, &l);
+                GpioGetInputVal(PIN_TRACE_R, &r);
+                printf("[Cliff] L:%d R:%d\r\n", l, r);
+            }
+            usleep(10000);   /* 10ms 轮询一次 */
         }
 
         /* 到达边缘: 立即强力反转制动(连发3次确保STM32执行), 刹住惯性 */
@@ -125,9 +140,11 @@ static void cliff_detection_demo(void)
 
     GpioInit();
 
-    /* 红外对管 GPIO13/14 输入模式 */
+    /* 红外对管 GPIO13/14 输入模式(对管无反射时输出悬空, 必须内部上拉, 否则恒读0) */
     IoSetFunc(WIFI_IOT_IO_NAME_GPIO_13, WIFI_IOT_IO_FUNC_GPIO_13_GPIO);
     IoSetFunc(WIFI_IOT_IO_NAME_GPIO_14, WIFI_IOT_IO_FUNC_GPIO_14_GPIO);
+    IoSetPull(WIFI_IOT_IO_NAME_GPIO_13, WIFI_IOT_IO_PULL_UP);
+    IoSetPull(WIFI_IOT_IO_NAME_GPIO_14, WIFI_IOT_IO_PULL_UP);
     GpioSetDir(PIN_TRACE_L, WIFI_IOT_GPIO_DIR_IN);
     GpioSetDir(PIN_TRACE_R, WIFI_IOT_GPIO_DIR_IN);
 
