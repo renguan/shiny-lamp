@@ -31,7 +31,7 @@
 #define SPEED_BRAKE      100                       /* 反转制动力: 大力矩瞬间刹住惯性 */
 #define BRAKE_MS         300                       /* 强力制动时长 */
 #define SPEED_BACK       75                        /* 制动后慢速后退速度 */
-#define BACK_MS          3000                      /* 慢速后退时长: 保证整车脱离边缘再转向 */
+#define BACK_MS          1000                      /* 慢速后退时长(原3000, 退太远改短) */
 #define SPEED_TURN       100                       /* 转向速度 */
 #define TURN_MS          1800                      /* 转向时长 */
 #define REST_MS          300                       /* 转向后停顿 */
